@@ -112,7 +112,7 @@ async function processPropertyCards() {
                 continue;
             }
 
-            // Calculate price per m²
+            // Calculate and display price per m²
             const pricePerMeter = price / surface;
             console.log('Calculated price per meter:', pricePerMeter);
 
