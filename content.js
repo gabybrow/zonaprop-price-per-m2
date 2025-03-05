@@ -44,67 +44,75 @@ function formatNumber(number) {
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Updated selectors for property cards
-    const propertyCards = document.querySelectorAll([
-        '.postings-container > div > div',  // New rental listing selector
-        'div[data-qa="posting-card"]',
-        'div.postingCard',
-        'article.posting-card'
-    ].join(','));
-
+    // Updated selector to match new property card layout
+    const propertyCards = document.querySelectorAll('.postingCardLayout-module__posting-card-layout');
     console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Updated selectors for price
+            // Price element selector
             const priceElement = card.querySelector([
-                'div[data-qa="POSTING_CARD_PRICE"]',
-                'div[data-qa="posting-price"]',
-                'div.firstPrice',
-                'div.price-items',
-                '.price'  // New rental listing price selector
+                '[data-qa="price"]',
+                '[data-qa="POSTING_CARD_PRICE"]',
+                '.price'
             ].join(','));
 
             if (!priceElement) {
-                console.log('Price element not found for card:', card.outerHTML.slice(0, 100));
+                console.log('Price element not found. Card HTML:', card.outerHTML.slice(0, 200));
                 continue;
             }
 
-            // Updated selectors for surface area
-            const surfaceElement = card.querySelector([
+            // Get all feature elements and combine their text
+            const featureElements = card.querySelectorAll([
                 'span[data-qa="posting-card-features-features"]',
-                'span[data-qa="property-features"]',
-                'div.postingCardFeatures',
-                'div.posting-features',
-                '.features'  // New rental listing features selector
+                'div[data-qa="posting-card-features"]',
+                'div.postingFeatures-module__features',
+                'div.features'
             ].join(','));
 
-            if (!surfaceElement) {
-                console.log('Surface element not found. Card HTML:', card.outerHTML.slice(0, 100));
-                continue;
+            let surfaceText = '';
+            featureElements.forEach(element => {
+                console.log('Feature element found:', element.textContent);
+                surfaceText += ' ' + element.textContent;
+            });
+
+            // Use fallback surface area selector if needed
+            if (!surfaceText) {
+                const surfaceElement = card.querySelector('[data-qa="posting-card-feature-surface"]');
+                if (surfaceElement) {
+                    console.log('Found direct surface element:', surfaceElement.textContent);
+                    surfaceText = surfaceElement.textContent;
+                } else {
+                    console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
+                    continue;
+                }
             }
 
-            // Check if we already processed this card
+            // Skip if already processed
             if (priceElement.querySelector('.price-per-meter')) continue;
 
-            console.log('Processing card with price:', priceElement.textContent, 'and features:', surfaceElement.textContent);
+            console.log('Processing card with price:', priceElement.textContent, 'and features:', surfaceText);
 
-            // Extract price and convert if necessary
+            // Extract and convert price if necessary
             let price = extractNumber(priceElement.textContent);
             if (!isUSD(priceElement)) {
                 price = await arsToUSD(price);
             }
 
             // Find the surface area within the features text
-            const surfaceMatch = surfaceElement.textContent.match(/(\d+(?:[.,]\d+)?)\s*m²/);
+            console.log('Analyzing surface text:', surfaceText);
+            const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²|(\d+(?:[.,]\d+)?)\s*metros?\s*cuadrados?/i);
+
             if (!surfaceMatch) {
-                console.log('Could not find surface area in features:', surfaceElement.textContent);
+                console.log('Could not find surface area in features:', surfaceText);
                 continue;
             }
 
-            const surface = extractNumber(surfaceMatch[1]);
+            // Extract and validate surface area
+            const surfaceStr = surfaceMatch[1] || surfaceMatch[2];
+            const surface = extractNumber(surfaceStr);
             if (!surface) {
-                console.log('Invalid surface area:', surfaceMatch[1]);
+                console.log('Invalid surface area:', surfaceStr);
                 continue;
             }
 
@@ -124,7 +132,7 @@ async function processPropertyCards() {
 
         } catch (error) {
             console.error('Error processing property card:', error);
-            console.log('Problematic card HTML:', card.outerHTML.slice(0, 100));
+            console.log('Problematic card HTML:', card.outerHTML.slice(0, 200));
         }
     }
 }
