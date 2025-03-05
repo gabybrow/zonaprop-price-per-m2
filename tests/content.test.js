@@ -8,6 +8,18 @@ global.MutationObserver = class {
     observe(element, initObject) {}
 };
 
+// Mock a basic DOM element
+function mockDOMElement(props = {}) {
+    return {
+        getAttribute: (attr) => props[attr] || null,
+        querySelector: props.querySelector || (() => null),
+        querySelectorAll: props.querySelectorAll || (() => []),
+        textContent: props.textContent || '',
+        className: props.className || '',
+        attributes: props.attributes || []
+    };
+}
+
 // Mock document.body for Node.js environment
 global.document = {
     body: {},
@@ -50,7 +62,8 @@ describe('Price calculation functions', () => {
     // Test extractSurfaceArea function with various HTML structures
     test('extractSurfaceArea finds surface area in different locations', () => {
         // Mock card with data-qa attribute
-        const cardWithDataQA = {
+        const cardWithDataQA = mockDOMElement({
+            'data-id': 'test-1',
             querySelector: (selector) => {
                 if (selector === '[data-qa="posting-card-feature-surface"]') {
                     return { textContent: '100 m²' };
@@ -59,33 +72,35 @@ describe('Price calculation functions', () => {
             },
             querySelectorAll: () => [],
             textContent: '100 m²'
-        };
+        });
         expect(extractSurfaceArea(cardWithDataQA)).toBe('100 m²');
 
         // Mock card with features container
-        const cardWithFeatures = {
+        const cardWithFeatures = mockDOMElement({
+            'data-id': 'test-2',
             querySelector: (selector) => {
                 if (selector === '.postingFeatures-module__features') {
-                    return { textContent: '2 dormitorios • 100 m² • 1 baño' };
+                    return { textContent: '2 dormitorios • 80 m² • 1 baño' };
                 }
                 return null;
             },
             querySelectorAll: () => [],
-            textContent: '2 dormitorios • 100 m² • 1 baño'
-        };
-        expect(extractSurfaceArea(cardWithFeatures)).toBe('2 dormitorios • 100 m² • 1 baño');
+            textContent: '2 dormitorios • 80 m² • 1 baño'
+        });
+        expect(extractSurfaceArea(cardWithFeatures)).toBe('2 dormitorios • 80 m² • 1 baño');
 
         // Mock card with feature spans
-        const cardWithSpans = {
+        const cardWithSpans = mockDOMElement({
+            'data-id': 'test-3',
             querySelector: () => null,
             querySelectorAll: () => [
                 { textContent: '2 dormitorios' },
-                { textContent: '100 m²' },
+                { textContent: '75 m²' },
                 { textContent: '1 baño' }
             ],
-            textContent: '2 dormitorios 100 m² 1 baño'
-        };
-        expect(extractSurfaceArea(cardWithSpans)).toBe('100 m²');
+            textContent: '2 dormitorios 75 m² 1 baño'
+        });
+        expect(extractSurfaceArea(cardWithSpans)).toBe('75 m²');
     });
 
     // Test getCurrentExchangeRate function with API response
@@ -100,7 +115,7 @@ describe('Price calculation functions', () => {
 
         const rate = await getCurrentExchangeRate();
         expect(rate).toBe(1200); // Should be average of buy/sell
-        expect(fetch).toHaveBeenCalledWith('https://api.bluelytics.com.ar/v2/latest');
+        expect(fetch).toHaveBeenCalledWith('https://api.bluelytics.com.ar/v2/latest', { timeout: 5000 });
     });
 
     // Test getCurrentExchangeRate error handling
@@ -125,5 +140,59 @@ describe('Price calculation functions', () => {
 
         const smallAmount = await arsToUSD(12000);
         expect(smallAmount).toBe(10); // 12K ARS / 1200 = 10 USD
+    });
+});
+
+describe('Surface area detection', () => {
+    test('extractSurfaceArea finds surface area with data-qa attribute', () => {
+        const card = mockDOMElement({
+            'data-id': 'test-1',
+            querySelector: (selector) => {
+                if (selector === '[data-qa="posting-card-feature-surface"]') {
+                    return { textContent: '100 m²' };
+                }
+                return null;
+            },
+            querySelectorAll: () => []
+        });
+        expect(extractSurfaceArea(card)).toBe('100 m²');
+    });
+
+    test('extractSurfaceArea finds surface area in features container', () => {
+        const card = mockDOMElement({
+            'data-id': 'test-2',
+            querySelector: (selector) => {
+                if (selector === '.postingFeatures-module__features') {
+                    return { textContent: '2 dormitorios • 80 m² • 1 baño' };
+                }
+                return null;
+            },
+            querySelectorAll: () => []
+        });
+        expect(extractSurfaceArea(card)).toBe('2 dormitorios • 80 m² • 1 baño');
+    });
+
+    test('extractSurfaceArea finds surface area in individual features', () => {
+        const card = mockDOMElement({
+            'data-id': 'test-3',
+            querySelector: () => null,
+            querySelectorAll: (selector) => {
+                if (selector === '[data-qa="posting-card-features-features"]') {
+                    return [
+                        { textContent: '2 dormitorios' },
+                        { textContent: '75 m²' },
+                        { textContent: '1 baño' }
+                    ];
+                }
+                return [];
+            }
+        });
+        expect(extractSurfaceArea(card)).toBe('75 m²');
+    });
+
+    test('extractSurfaceArea handles invalid inputs gracefully', () => {
+        expect(extractSurfaceArea(null)).toBe(null);
+        expect(extractSurfaceArea({})).toBe(null);
+        expect(extractSurfaceArea({ textContent: 'no surface area' })).toBe(null);
     });
 });
