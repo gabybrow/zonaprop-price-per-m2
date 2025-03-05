@@ -44,19 +44,17 @@ function formatNumber(number) {
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Updated selectors for property cards to match the new structure
+    // Updated selector to match the specific module class
     const propertyCards = document.querySelectorAll('.postingCardLayout-module__posting-card-layout');
 
     console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Updated selectors for price elements
+            // Updated price selectors
             const priceElement = card.querySelector([
                 '[data-qa="price"]',
                 '[data-qa="POSTING_CARD_PRICE"]',
-                '.firstPrice',
-                '.price-items',
                 '.price'
             ].join(','));
 
@@ -80,8 +78,15 @@ async function processPropertyCards() {
             });
 
             if (!surfaceText) {
-                console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
-                continue;
+                // Try alternate approach: look for specific surface area element
+                const surfaceElement = card.querySelector('[data-qa="posting-card-feature-surface"]');
+                if (surfaceElement) {
+                    console.log('Found direct surface element:', surfaceElement.textContent);
+                    surfaceText = surfaceElement.textContent;
+                } else {
+                    console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
+                    continue;
+                }
             }
 
             // Check if we already processed this card
@@ -96,7 +101,6 @@ async function processPropertyCards() {
             }
 
             // Find the surface area within the features text
-            // Updated regex to handle more variations of surface area format
             console.log('Analyzing surface text:', surfaceText);
 
             const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²|(\d+(?:[.,]\d+)?)\s*metros?\s*cuadrados?/i);
