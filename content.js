@@ -303,46 +303,63 @@ async function processPropertyCards() {
             // Try multiple price element selectors
             const priceSelectors = [
                 '[data-qa="price"]',
+                '[data-qa="posting-price"]',
+                '[data-qa="posting-card-price"]',
                 '.price',
                 '.postingCard-price',
                 '.posting-price',
                 '.firstPrice',
                 '.value',
                 '[class*="price"]',
-                '[class*="Price"]',
-                'span:contains("USD")',
-                'span:contains("U$S")',
-                'span:contains("ARS")',
-                'div:contains("USD")',
-                'div:contains("U$S")'
+                '[class*="Price"]'
             ];
             
             let priceElement = null;
             
             // First attempt: Direct selectors
             for (const selector of priceSelectors) {
-                const element = card.querySelector(selector);
-                if (element && element.textContent.trim()) {
-                    priceElement = element;
-                    break;
+                const elements = card.querySelectorAll(selector);
+                for (const element of elements) {
+                    const text = element.textContent.trim();
+                    if (text && (text.includes('USD') || text.includes('U$S') || text.includes('ARS') || 
+                        text.includes('$')) && /\d+/.test(text)) {
+                        priceElement = element;
+                        console.log(`Found price element with selector "${selector}": "${text}"`);
+                        break;
+                    }
                 }
+                if (priceElement) break;
             }
             
             // Second attempt: Find any element containing price information
             if (!priceElement) {
-                const allElements = card.querySelectorAll('*');
+                console.log('Trying broader search for price elements...');
+                const currencyMatchers = ['USD', 'U$S', 'U$D', 'ARS', '$'];
+                
+                // First look for elements specifically containing both numbers and currency indicators
+                const allElements = Array.from(card.querySelectorAll('div, span, p, h1, h2, h3, h4'));
                 for (const element of allElements) {
                     const text = element.textContent.trim();
-                    if ((text.includes('USD') || text.includes('U$S') || text.includes('ARS')) && 
-                        /\d+/.test(text)) {
+                    // Check if text contains both a currency indicator and a number
+                    if (text && /\d+/.test(text) && 
+                        currencyMatchers.some(currency => text.includes(currency))) {
                         priceElement = element;
+                        console.log(`Found price using text content scan: "${text}"`);
                         break;
                     }
                 }
             }
             
             if (!priceElement) {
-                console.log('Price element not found in card:', card.outerHTML.substring(0, 200));
+                // Log detailed information for debugging
+                console.log('Price element not found in card. Details:', {
+                    cardId: card.getAttribute('data-id') || 'unknown',
+                    classes: card.className,
+                    possiblePriceTexts: Array.from(card.querySelectorAll('*'))
+                        .map(el => el.textContent.trim())
+                        .filter(text => /\d+/.test(text) && text.length < 30)
+                        .slice(0, 5)
+                });
                 continue;
             }
 
