@@ -37,21 +37,50 @@ function formatNumber(number) {
 
 // Main function to process property cards
 async function processPropertyCards() {
-    // Select all property cards
-    const propertyCards = document.querySelectorAll('[data-qa="posting PROPERTY"]');
+    console.log('Processing property cards...');
+
+    // Try multiple possible selectors for property cards
+    const propertyCards = document.querySelectorAll([
+        '[data-qa="posting PROPERTY"]',
+        '.postingCard',
+        '.listing-item',
+        '[data-posting-type="PROPERTY"]'
+    ].join(','));
+
+    console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Find price element
-            const priceElement = card.querySelector('[data-qa="POSTING_CARD_PRICE"]');
-            if (!priceElement) continue;
+            // Try multiple possible selectors for price
+            const priceElement = card.querySelector([
+                '[data-qa="POSTING_CARD_PRICE"]',
+                '.firstPrice',
+                '.price-items',
+                '.posting-price'
+            ].join(','));
 
-            // Find surface element
-            const surfaceElement = card.querySelector('[data-qa="POSTING_CARD_SURFACE"]');
-            if (!surfaceElement) continue;
+            if (!priceElement) {
+                console.log('Price element not found for card:', card);
+                continue;
+            }
+
+            // Try multiple possible selectors for surface
+            const surfaceElement = card.querySelector([
+                '[data-qa="POSTING_CARD_SURFACE"]',
+                '.surface',
+                '.posting-features',
+                '.total-area'
+            ].join(','));
+
+            if (!surfaceElement) {
+                console.log('Surface element not found for card:', card);
+                continue;
+            }
 
             // Check if price per meter is already added
             if (priceElement.querySelector('.price-per-meter')) continue;
+
+            console.log('Processing card with price:', priceElement.textContent, 'and surface:', surfaceElement.textContent);
 
             // Extract and process price
             let price = extractNumber(priceElement.textContent);
@@ -64,6 +93,8 @@ async function processPropertyCards() {
 
             // Calculate price per m²
             const pricePerMeter = price / surface;
+
+            console.log('Calculated price per meter:', pricePerMeter);
 
             // Create and style the new price per m² element
             const pricePerMeterElement = document.createElement('span');
@@ -100,3 +131,6 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 });
+
+// Add console message to verify the script is loaded
+console.log('Zonaprop Price per m² extension loaded successfully');

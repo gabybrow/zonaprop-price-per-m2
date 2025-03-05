@@ -9,12 +9,20 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.zonaprop.com.ar/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://*.zonaprop.com.ar/*",
+        "*://zonaprop.com.ar/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ],
   "host_permissions": [
     "*://*.zonaprop.com.ar/*",
+    "*://zonaprop.com.ar/*",
     "https://api.bluelytics.com.ar/*"
+  ],
+  "permissions": [
+    "activeTab"
   ]
 }
