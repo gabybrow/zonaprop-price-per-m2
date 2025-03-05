@@ -44,64 +44,74 @@ function formatNumber(number) {
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Try multiple possible selectors for property cards
+    // Updated selectors for property cards
     const propertyCards = document.querySelectorAll([
-        '[data-qa="posting PROPERTY"]',
-        '.postingCard',
-        '.listing-item',
-        '[data-posting-type="PROPERTY"]'
+        '.postings-container > div > div',  // New rental listing selector
+        'div[data-qa="posting-card"]',
+        'div.postingCard',
+        'article.posting-card'
     ].join(','));
 
     console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Try multiple possible selectors for price
+            // Updated selectors for price
             const priceElement = card.querySelector([
-                '[data-qa="POSTING_CARD_PRICE"]',
-                '.firstPrice',
-                '.price-items',
-                '.posting-price'
+                'div[data-qa="POSTING_CARD_PRICE"]',
+                'div[data-qa="posting-price"]',
+                'div.firstPrice',
+                'div.price-items',
+                '.price'  // New rental listing price selector
             ].join(','));
 
             if (!priceElement) {
-                console.log('Price element not found for card:', card);
+                console.log('Price element not found for card:', card.outerHTML.slice(0, 100));
                 continue;
             }
 
-            // Try multiple possible selectors for surface
+            // Updated selectors for surface area
             const surfaceElement = card.querySelector([
-                '[data-qa="POSTING_CARD_SURFACE"]',
-                '.surface',
-                '.posting-features',
-                '.total-area'
+                'span[data-qa="posting-card-features-features"]',
+                'span[data-qa="property-features"]',
+                'div.postingCardFeatures',
+                'div.posting-features',
+                '.features'  // New rental listing features selector
             ].join(','));
 
             if (!surfaceElement) {
-                console.log('Surface element not found for card:', card);
+                console.log('Surface element not found. Card HTML:', card.outerHTML.slice(0, 100));
                 continue;
             }
 
-            // Check if price per meter is already added
+            // Check if we already processed this card
             if (priceElement.querySelector('.price-per-meter')) continue;
 
-            console.log('Processing card with price:', priceElement.textContent, 'and surface:', surfaceElement.textContent);
+            console.log('Processing card with price:', priceElement.textContent, 'and features:', surfaceElement.textContent);
 
-            // Extract and process price
+            // Extract price and convert if necessary
             let price = extractNumber(priceElement.textContent);
             if (!isUSD(priceElement)) {
                 price = await arsToUSD(price);
             }
 
-            // Extract surface (m²)
-            const surface = extractNumber(surfaceElement.textContent);
+            // Find the surface area within the features text
+            const surfaceMatch = surfaceElement.textContent.match(/(\d+(?:[.,]\d+)?)\s*m²/);
+            if (!surfaceMatch) {
+                console.log('Could not find surface area in features:', surfaceElement.textContent);
+                continue;
+            }
 
-            // Calculate price per m²
+            const surface = extractNumber(surfaceMatch[1]);
+            if (!surface) {
+                console.log('Invalid surface area:', surfaceMatch[1]);
+                continue;
+            }
+
+            // Calculate and display price per m²
             const pricePerMeter = price / surface;
-
             console.log('Calculated price per meter:', pricePerMeter);
 
-            // Create and style the new price per m² element
             const pricePerMeterElement = document.createElement('span');
             pricePerMeterElement.textContent = `(USD ${formatNumber(pricePerMeter)}/m²)`;
             pricePerMeterElement.style.color = '#28a745';
@@ -110,11 +120,11 @@ async function processPropertyCards() {
             pricePerMeterElement.style.fontSize = '0.9em';
             pricePerMeterElement.className = 'price-per-meter';
 
-            // Insert the new element after the price
             priceElement.appendChild(pricePerMeterElement);
 
         } catch (error) {
             console.error('Error processing property card:', error);
+            console.log('Problematic card HTML:', card.outerHTML.slice(0, 100));
         }
     }
 }
