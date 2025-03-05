@@ -45,7 +45,7 @@ function extractSurfaceArea(cardElement) {
     const attempts = [
         // Attempt 1: Direct surface feature with data-qa attribute
         () => {
-            const surfaceFeature = cardElement.querySelector('[data-qa="posting-card-feature-surface"]');
+            const surfaceFeature = cardElement.querySelector('[data-qa="posting-card-feature-surface"], [data-qa="surface"]');
             if (surfaceFeature) {
                 console.log('Found surface via data-qa:', surfaceFeature.textContent);
                 return surfaceFeature.textContent;
@@ -54,31 +54,35 @@ function extractSurfaceArea(cardElement) {
         },
         // Attempt 2: Features container
         () => {
-            const featuresContainer = cardElement.querySelector('.postingFeatures-module__features');
+            const featuresContainer = cardElement.querySelector('.postingFeatures-module__features, .postingCard-features');
             if (featuresContainer) {
-                console.log('Found features container:', featuresContainer.textContent);
-                return featuresContainer.textContent;
+                const text = featuresContainer.textContent;
+                console.log('Found features container:', text);
+                if (text.includes('m²')) return text;
             }
             return null;
         },
         // Attempt 3: Individual feature spans
         () => {
-            const features = Array.from(cardElement.querySelectorAll('[data-qa="posting-card-features-features"]'));
+            const features = Array.from(cardElement.querySelectorAll('[data-qa="posting-card-features-features"], [data-qa="features"]'));
             for (const feature of features) {
-                if (feature.textContent.includes('m²')) {
-                    console.log('Found surface in feature:', feature.textContent);
-                    return feature.textContent;
+                const text = feature.textContent;
+                if (text.includes('m²')) {
+                    console.log('Found surface in feature:', text);
+                    return text;
                 }
             }
             return null;
         },
-        // Attempt 4: Search in all nested text for surface area
+        // Attempt 4: Search in specific feature divs
         () => {
-            const allText = cardElement.textContent;
-            const surfaceMatch = allText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
-            if (surfaceMatch) {
-                console.log('Found surface in text content:', surfaceMatch[0]);
-                return surfaceMatch[0];
+            const features = Array.from(cardElement.querySelectorAll('div[class*="feature"], div[class*="Feature"]'));
+            for (const feature of features) {
+                const text = feature.textContent;
+                if (text.includes('m²')) {
+                    console.log('Found surface in div:', text);
+                    return text;
+                }
             }
             return null;
         }
@@ -89,7 +93,8 @@ function extractSurfaceArea(cardElement) {
         if (result) return result;
     }
 
-    console.log('No surface area found in card:', cardElement.outerHTML);
+    // Log the entire card's HTML structure for debugging
+    console.log('Surface area detection attempts failed. Card structure:', cardElement.outerHTML);
     return null;
 }
 
