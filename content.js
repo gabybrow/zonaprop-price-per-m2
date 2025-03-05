@@ -1,28 +1,107 @@
 // Function to extract numbers from string and remove dots
 function extractNumber(str) {
-    // Handle decimal numbers with comma
-    if (str.includes(',')) {
-        return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+    if (!str || typeof str !== 'string') {
+        console.warn('Invalid input to extractNumber:', str);
+        return 0;
     }
-    return parseFloat(str.replace(/\./g, '').match(/\d+/g)[0]);
+    
+    str = str.trim();
+    
+    try {
+        // Handle decimal numbers with comma (European format)
+        if (str.includes(',')) {
+            // First remove any thousand separators (dots)
+            let cleanedStr = str.replace(/\./g, '');
+            // Then replace comma with dot for decimal point
+            cleanedStr = cleanedStr.replace(',', '.');
+            // Extract the number
+            const matches = cleanedStr.match(/\d+(?:\.\d+)?/);
+            if (matches && matches.length > 0) {
+                return parseFloat(matches[0]);
+            }
+        }
+        
+        // Handle numbers with dots as thousand separators
+        const matches = str.replace(/\./g, '').match(/\d+/g);
+        if (matches && matches.length > 0) {
+            return parseFloat(matches[0]);
+        }
+        
+        // Fallback - just try to extract any number
+        const fallbackMatches = str.match(/\d+/g);
+        if (fallbackMatches && fallbackMatches.length > 0) {
+            return parseFloat(fallbackMatches[0]);
+        }
+        
+        return 0;
+    } catch (error) {
+        console.error('Error in extractNumber:', error);
+        return 0;
+    }
 }
 
 // Function to check if price is in USD or ARS
 function isUSD(priceElement) {
+    if (!priceElement || !priceElement.textContent) {
+        return false;
+    }
+    
     const text = priceElement.textContent.toUpperCase();
-    return text.includes('USD') || text.includes('U$S');
+    return text.includes('USD') || 
+           text.includes('U$S') || 
+           text.includes('U$D') || 
+           text.includes('DÓLAR') || 
+           text.includes('DOLAR') ||
+           text.includes('$') && !text.includes('$AR') && !text.includes('ARS');
 }
 
 // Function to fetch current exchange rate
 async function getCurrentExchangeRate() {
     try {
-        const response = await fetch('https://api.bluelytics.com.ar/v2/latest');
-        const data = await response.json();
-        // Using blue rate (informal market rate) as it's closer to dolarhoy.com values
-        return (data.blue.value_buy + data.blue.value_sell) / 2;
+        // Try multiple exchange rate APIs
+        const apiUrls = [
+            'https://api.bluelytics.com.ar/v2/latest',
+            'https://dolarapi.com/v1/dolares/blue' // Alternative API
+        ];
+        
+        let exchangeRate = null;
+        
+        // Try the primary API first
+        try {
+            const response = await fetch(apiUrls[0], { timeout: 5000 });
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+            
+            const data = await response.json();
+            // Using blue rate (informal market rate) as it's closer to dolarhoy.com values
+            exchangeRate = (data.blue.value_buy + data.blue.value_sell) / 2;
+            console.log('Exchange rate from primary API:', exchangeRate);
+        } catch (primaryError) {
+            console.warn('Primary exchange rate API failed:', primaryError);
+            
+            // Try the backup API
+            try {
+                const response = await fetch(apiUrls[1], { timeout: 5000 });
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                
+                const data = await response.json();
+                exchangeRate = (data.compra + data.venta) / 2;
+                console.log('Exchange rate from backup API:', exchangeRate);
+            } catch (backupError) {
+                console.error('Backup exchange rate API also failed:', backupError);
+                throw new Error('All exchange rate APIs failed');
+            }
+        }
+        
+        // Validate the exchange rate
+        if (!exchangeRate || isNaN(exchangeRate) || exchangeRate <= 0) {
+            console.error('Invalid exchange rate received:', exchangeRate);
+            return 1200; // Fallback to a reasonable rate
+        }
+        
+        return exchangeRate;
     } catch (error) {
         console.error('Error fetching exchange rate:', error);
-        return 1200; // Fallback rate if API fails
+        return 1200; // Fallback rate if all APIs fail
     }
 }
 
@@ -191,25 +270,66 @@ function extractSurfaceArea(cardElement) {
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Select property cards using the specific module class
-    const propertyCards = document.querySelectorAll('.postingCardLayout-module__posting-card-layout');
-    console.log(`Found ${propertyCards.length} property cards`);
+    // Try multiple selectors for property cards
+    const selectors = [
+        '.postingCardLayout-module__posting-card-layout',
+        '.postingCard',
+        '[data-qa="posting-card"]',
+        '.property-card',
+        '.posting'
+    ];
+    
+    let propertyCards = [];
+    
+    for (const selector of selectors) {
+        const cards = document.querySelectorAll(selector);
+        if (cards.length > 0) {
+            console.log(`Found ${cards.length} property cards with selector "${selector}"`);
+            propertyCards = cards;
+            break;
+        }
+    }
+    
+    if (propertyCards.length === 0) {
+        console.log('No property cards found with any selector');
+        return;
+    }
 
     for (const card of propertyCards) {
         try {
             // Skip if already processed
             if (card.querySelector('.price-per-meter')) continue;
 
-            // Price element selector
-            const priceElement = card.querySelector('[data-qa="price"]');
+            // Try multiple price element selectors
+            const priceSelectors = [
+                '[data-qa="price"]',
+                '.price',
+                '.postingCard-price',
+                '.posting-price',
+                '.firstPrice',
+                '.value'
+            ];
+            
+            let priceElement = null;
+            for (const selector of priceSelectors) {
+                const element = card.querySelector(selector);
+                if (element && element.textContent.trim()) {
+                    priceElement = element;
+                    break;
+                }
+            }
+            
             if (!priceElement) {
-                console.log('Price element not found in card:', card.outerHTML);
+                console.log('Price element not found in card');
                 continue;
             }
 
             // Get surface area
             const surfaceText = extractSurfaceArea(card);
-            if (!surfaceText) continue;
+            if (!surfaceText) {
+                console.log('Surface area not found for card');
+                continue;
+            }
 
             // Extract surface area value
             const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
@@ -219,20 +339,36 @@ async function processPropertyCards() {
             }
 
             // Extract and convert price
-            let price = extractNumber(priceElement.textContent);
-            if (!isUSD(priceElement)) {
-                price = await arsToUSD(price);
+            let price;
+            try {
+                price = extractNumber(priceElement.textContent);
+                if (isNaN(price) || price <= 0) {
+                    console.log('Invalid price extracted:', priceElement.textContent);
+                    continue;
+                }
+                
+                if (!isUSD(priceElement)) {
+                    price = await arsToUSD(price);
+                }
+            } catch (error) {
+                console.error('Error extracting price:', error);
+                continue;
             }
 
             // Calculate surface area
             const surface = extractNumber(surfaceMatch[1]);
-            if (!surface) {
+            if (!surface || isNaN(surface) || surface <= 0) {
                 console.log('Invalid surface area:', surfaceMatch[1]);
                 continue;
             }
 
             // Calculate and format price per m²
             const pricePerMeter = price / surface;
+            if (isNaN(pricePerMeter) || pricePerMeter <= 0) {
+                console.log('Invalid price per meter calculation');
+                continue;
+            }
+            
             console.log(`Calculated ${formatNumber(pricePerMeter)} USD/m² for surface ${surface}m²`);
 
             // Create and style price per meter element
@@ -248,7 +384,6 @@ async function processPropertyCards() {
 
         } catch (error) {
             console.error('Error processing property card:', error);
-            console.log('Problematic card HTML:', card.outerHTML);
         }
     }
 }
