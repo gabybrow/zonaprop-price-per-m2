@@ -42,7 +42,14 @@ function formatNumber(number) {
 
 // Function to extract surface area from property details
 function extractSurfaceArea(cardElement) {
-    console.group('Surface area detection for card:', cardElement.getAttribute('data-id'));
+    // Guard against non-DOM elements
+    if (!cardElement || typeof cardElement.getAttribute !== 'function') {
+        console.warn('Invalid card element provided to extractSurfaceArea');
+        return null;
+    }
+
+    const cardId = cardElement.getAttribute('data-id') || 'unknown';
+    console.group('Surface area detection for card:', cardId);
 
     const attempts = [
         // Attempt 1: Direct surface feature with data-qa attribute
@@ -52,14 +59,16 @@ function extractSurfaceArea(cardElement) {
                 '[data-qa="posting-card-feature-surface"]',
                 '[data-qa="surface"]',
                 '[data-qa="property-features"] span:nth-child(1)',
-                '[data-qa="posting-card-feature-total-surface"]'  // Added new selector
+                '[data-qa="posting-card-feature-total-surface"]'
             ];
             for (const selector of selectors) {
                 const surfaceFeature = cardElement.querySelector(selector);
                 if (surfaceFeature) {
                     const text = surfaceFeature.textContent.trim();
-                    console.log(`Found surface via selector "${selector}":`, text);
-                    if (text.includes('m²')) return text;
+                    if (text.includes('m²')) {
+                        console.log(`✓ Found surface via selector "${selector}":`, text);
+                        return text;
+                    }
                 }
             }
             return null;
@@ -72,14 +81,17 @@ function extractSurfaceArea(cardElement) {
                 '.postingCard-features',
                 '.property-features',
                 '.features-container',
-                '.posting-features-wrapper'  // Added new selector
+                '.posting-features-wrapper',
+                '.features'
             ];
             for (const selector of selectors) {
                 const featuresContainer = cardElement.querySelector(selector);
                 if (featuresContainer) {
                     const text = featuresContainer.textContent.trim();
-                    console.log(`Found features container with selector "${selector}":`, text);
-                    if (text.includes('m²')) return text;
+                    if (text.includes('m²')) {
+                        console.log(`✓ Found surface in features container "${selector}":`, text);
+                        return text;
+                    }
                 }
             }
             return null;
@@ -92,7 +104,8 @@ function extractSurfaceArea(cardElement) {
                 '[data-qa="features"]',
                 '.postingCard-features-item',
                 '.feature-item',
-                '.feature-value'  // Added new selector
+                '.feature-value',
+                '.posting-features span'
             ];
             for (const selector of selectors) {
                 const features = Array.from(cardElement.querySelectorAll(selector));
@@ -100,7 +113,7 @@ function extractSurfaceArea(cardElement) {
                 for (const feature of features) {
                     const text = feature.textContent.trim();
                     if (text.includes('m²')) {
-                        console.log('Found surface in feature:', text);
+                        console.log(`✓ Found surface in feature:`, text);
                         return text;
                     }
                 }
@@ -114,14 +127,15 @@ function extractSurfaceArea(cardElement) {
                 'div[class*="feature"]',
                 'div[class*="Feature"]',
                 '.posting-features',
-                'div[class*="surface"]',  // Added new selector
-                'div[class*="Surface"]'   // Added new selector
+                'div[class*="surface"]',
+                'div[class*="Surface"]',
+                '.features div'
             ].join(',')));
             console.log(`Found ${features.length} potential feature divs`);
             for (const feature of features) {
                 const text = feature.textContent.trim();
                 if (text.includes('m²')) {
-                    console.log('Found surface in div:', text);
+                    console.log(`✓ Found surface in div:`, text);
                     return text;
                 }
             }
@@ -136,10 +150,9 @@ function extractSurfaceArea(cardElement) {
                 const text = element.textContent.trim();
                 if (text) allText += ' ' + text;
             });
-            console.log('Combined text content:', allText);
             const surfaceMatch = allText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
             if (surfaceMatch) {
-                console.log('Found surface in combined text:', surfaceMatch[0]);
+                console.log(`✓ Found surface in combined text:`, surfaceMatch[0]);
                 return surfaceMatch[0];
             }
             return null;
@@ -156,11 +169,12 @@ function extractSurfaceArea(cardElement) {
     }
 
     // Log failure with detailed card information
+    const attributes = cardElement.attributes ? Array.from(cardElement.attributes) : [];
     console.warn('Surface area detection failed. Card details:', {
-        id: cardElement.getAttribute('data-id'),
+        id: cardId,
         classes: cardElement.className,
-        dataAttributes: Array.from(cardElement.attributes)
-            .filter(attr => attr.name.startsWith('data-'))
+        dataAttributes: attributes
+            .filter(attr => attr && attr.name && attr.name.startsWith('data-'))
             .reduce((obj, attr) => ({ ...obj, [attr.name]: attr.value }), {}),
         featureElements: Array.from(cardElement.querySelectorAll('[class*="feature"], [class*="Feature"], [data-qa*="feature"]'))
             .map(el => ({ 
