@@ -51,7 +51,8 @@ function extractSurfaceArea(cardElement) {
             const selectors = [
                 '[data-qa="posting-card-feature-surface"]',
                 '[data-qa="surface"]',
-                '[data-qa="property-features"] span:nth-child(1)'
+                '[data-qa="property-features"] span:nth-child(1)',
+                '[data-qa="posting-card-feature-total-surface"]'  // Added new selector
             ];
             for (const selector of selectors) {
                 const surfaceFeature = cardElement.querySelector(selector);
@@ -70,7 +71,8 @@ function extractSurfaceArea(cardElement) {
                 '.postingFeatures-module__features',
                 '.postingCard-features',
                 '.property-features',
-                '.features-container'
+                '.features-container',
+                '.posting-features-wrapper'  // Added new selector
             ];
             for (const selector of selectors) {
                 const featuresContainer = cardElement.querySelector(selector);
@@ -89,7 +91,8 @@ function extractSurfaceArea(cardElement) {
                 '[data-qa="posting-card-features-features"]',
                 '[data-qa="features"]',
                 '.postingCard-features-item',
-                '.feature-item'
+                '.feature-item',
+                '.feature-value'  // Added new selector
             ];
             for (const selector of selectors) {
                 const features = Array.from(cardElement.querySelectorAll(selector));
@@ -107,7 +110,13 @@ function extractSurfaceArea(cardElement) {
         // Attempt 4: Search in specific feature divs
         () => {
             console.log('Attempt 4: Checking generic feature divs...');
-            const features = Array.from(cardElement.querySelectorAll('div[class*="feature"], div[class*="Feature"], .posting-features'));
+            const features = Array.from(cardElement.querySelectorAll([
+                'div[class*="feature"]',
+                'div[class*="Feature"]',
+                '.posting-features',
+                'div[class*="surface"]',  // Added new selector
+                'div[class*="Surface"]'   // Added new selector
+            ].join(',')));
             console.log(`Found ${features.length} potential feature divs`);
             for (const feature of features) {
                 const text = feature.textContent.trim();
@@ -122,12 +131,16 @@ function extractSurfaceArea(cardElement) {
         () => {
             console.log('Attempt 5: Searching all relevant text...');
             const textElements = Array.from(cardElement.querySelectorAll('span, div'));
-            for (const element of textElements) {
+            let allText = '';
+            textElements.forEach(element => {
                 const text = element.textContent.trim();
-                if (text.match(/\d+\s*m²/)) {
-                    console.log('Found surface in element:', text);
-                    return text;
-                }
+                if (text) allText += ' ' + text;
+            });
+            console.log('Combined text content:', allText);
+            const surfaceMatch = allText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
+            if (surfaceMatch) {
+                console.log('Found surface in combined text:', surfaceMatch[0]);
+                return surfaceMatch[0];
             }
             return null;
         }
@@ -142,11 +155,19 @@ function extractSurfaceArea(cardElement) {
         }
     }
 
-    // Log failure with card details
-    console.warn('Surface area detection failed. Card structure:', {
+    // Log failure with detailed card information
+    console.warn('Surface area detection failed. Card details:', {
         id: cardElement.getAttribute('data-id'),
         classes: cardElement.className,
-        html: cardElement.outerHTML
+        dataAttributes: Array.from(cardElement.attributes)
+            .filter(attr => attr.name.startsWith('data-'))
+            .reduce((obj, attr) => ({ ...obj, [attr.name]: attr.value }), {}),
+        featureElements: Array.from(cardElement.querySelectorAll('[class*="feature"], [class*="Feature"], [data-qa*="feature"]'))
+            .map(el => ({ 
+                class: el.className,
+                text: el.textContent.trim(),
+                dataQa: el.getAttribute('data-qa')
+            }))
     });
     console.groupEnd();
     return null;
