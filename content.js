@@ -1,11 +1,16 @@
 // Function to extract numbers from string and remove dots
 function extractNumber(str) {
+    // Handle decimal numbers with comma
+    if (str.includes(',')) {
+        return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+    }
     return parseFloat(str.replace(/\./g, '').match(/\d+/g)[0]);
 }
 
 // Function to check if price is in USD or ARS
 function isUSD(priceElement) {
-    return priceElement.textContent.includes('USD');
+    const text = priceElement.textContent.toUpperCase();
+    return text.includes('USD') || text.includes('U$S');
 }
 
 // Function to fetch current exchange rate
@@ -39,64 +44,78 @@ function formatNumber(number) {
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Try multiple possible selectors for property cards
-    const propertyCards = document.querySelectorAll([
-        '[data-qa="posting PROPERTY"]',
-        '.postingCard',
-        '.listing-item',
-        '[data-posting-type="PROPERTY"]'
-    ].join(','));
+    // Updated selectors for property cards to match the new structure
+    const propertyCards = document.querySelectorAll('.postingCardLayout-module__posting-card-layout');
 
     console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Try multiple possible selectors for price
+            // Updated selectors for price elements
             const priceElement = card.querySelector([
+                '[data-qa="price"]',
                 '[data-qa="POSTING_CARD_PRICE"]',
                 '.firstPrice',
                 '.price-items',
-                '.posting-price'
+                '.price'
             ].join(','));
 
             if (!priceElement) {
-                console.log('Price element not found for card:', card);
+                console.log('Price element not found for card:', card.outerHTML.slice(0, 200));
                 continue;
             }
 
-            // Try multiple possible selectors for surface
-            const surfaceElement = card.querySelector([
-                '[data-qa="POSTING_CARD_SURFACE"]',
-                '.surface',
-                '.posting-features',
-                '.total-area'
+            // Updated selectors for features/surface area with more specific targeting
+            const featureElements = card.querySelectorAll([
+                '[data-qa="posting PROPERTY"] [data-qa="features"]',
+                '[data-qa="posting PROPERTY"] .features',
+                '.postingFeatures-module__features',
+                '.postingFeatures',
+                '.features'
             ].join(','));
 
-            if (!surfaceElement) {
-                console.log('Surface element not found for card:', card);
+            let surfaceText = '';
+            for (const element of featureElements) {
+                surfaceText += ' ' + element.textContent;
+            }
+
+            if (!surfaceText) {
+                console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
                 continue;
             }
 
-            // Check if price per meter is already added
+            // Check if we already processed this card
             if (priceElement.querySelector('.price-per-meter')) continue;
 
-            console.log('Processing card with price:', priceElement.textContent, 'and surface:', surfaceElement.textContent);
+            console.log('Processing card with price:', priceElement.textContent, 'and features:', surfaceText);
 
-            // Extract and process price
+            // Extract price and convert if necessary
             let price = extractNumber(priceElement.textContent);
             if (!isUSD(priceElement)) {
                 price = await arsToUSD(price);
             }
 
-            // Extract surface (m²)
-            const surface = extractNumber(surfaceElement.textContent);
+            // Find the surface area within the features text
+            // Updated regex to handle more variations of surface area format
+            console.log('Analyzing surface text:', surfaceText);
+
+            const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²|(\d+(?:[.,]\d+)?)\s*metros?\s*cuadrados?/i);
+            if (!surfaceMatch) {
+                console.log('Could not find surface area in features:', surfaceText);
+                continue;
+            }
+
+            const surfaceStr = surfaceMatch[1] || surfaceMatch[2];
+            const surface = extractNumber(surfaceStr);
+            if (!surface) {
+                console.log('Invalid surface area:', surfaceStr);
+                continue;
+            }
 
             // Calculate price per m²
             const pricePerMeter = price / surface;
-
             console.log('Calculated price per meter:', pricePerMeter);
 
-            // Create and style the new price per m² element
             const pricePerMeterElement = document.createElement('span');
             pricePerMeterElement.textContent = `(USD ${formatNumber(pricePerMeter)}/m²)`;
             pricePerMeterElement.style.color = '#28a745';
@@ -105,32 +124,46 @@ async function processPropertyCards() {
             pricePerMeterElement.style.fontSize = '0.9em';
             pricePerMeterElement.className = 'price-per-meter';
 
-            // Insert the new element after the price
             priceElement.appendChild(pricePerMeterElement);
 
         } catch (error) {
             console.error('Error processing property card:', error);
+            console.log('Problematic card HTML:', card.outerHTML.slice(0, 200));
         }
     }
 }
 
-// Initial processing
-processPropertyCards();
+// Only run in browser environment
+if (typeof window !== 'undefined') {
+    // Initial processing
+    processPropertyCards();
 
-// Set up a MutationObserver to handle dynamically loaded content
-const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-        if (mutation.addedNodes.length) {
-            processPropertyCards();
+    // Set up a MutationObserver to handle dynamically loaded content
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.addedNodes.length) {
+                processPropertyCards();
+            }
         }
-    }
-});
+    });
 
-// Start observing the document body for changes
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+    // Start observing the document body for changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 
-// Add console message to verify the script is loaded
-console.log('Zonaprop Price per m² extension loaded successfully');
+    // Add console message to verify the script is loaded
+    console.log('Zonaprop Price per m² extension loaded successfully');
+}
+
+// Export functions for testing (only in Node.js environment)
+if (typeof module !== 'undefined') {
+    module.exports = {
+        extractNumber,
+        isUSD,
+        formatNumber,
+        getCurrentExchangeRate,
+        arsToUSD
+    };
+}
