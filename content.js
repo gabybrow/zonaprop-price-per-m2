@@ -1,11 +1,16 @@
 // Function to extract numbers from string and remove dots
 function extractNumber(str) {
+    // Handle decimal numbers with comma
+    if (str.includes(',')) {
+        return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+    }
     return parseFloat(str.replace(/\./g, '').match(/\d+/g)[0]);
 }
 
 // Function to check if price is in USD or ARS
 function isUSD(priceElement) {
-    return priceElement.textContent.includes('USD');
+    const text = priceElement.textContent.toUpperCase();
+    return text.includes('USD') || text.includes('U$S');
 }
 
 // Function to fetch current exchange rate
@@ -114,26 +119,29 @@ async function processPropertyCards() {
     }
 }
 
-// Initial processing
-processPropertyCards();
+// Only run in browser environment
+if (typeof window !== 'undefined') {
+    // Initial processing
+    processPropertyCards();
 
-// Set up a MutationObserver to handle dynamically loaded content
-const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-        if (mutation.addedNodes.length) {
-            processPropertyCards();
+    // Set up a MutationObserver to handle dynamically loaded content
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.addedNodes.length) {
+                processPropertyCards();
+            }
         }
-    }
-});
+    });
 
-// Start observing the document body for changes
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+    // Start observing the document body for changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 
-// Add console message to verify the script is loaded
-console.log('Zonaprop Price per m² extension loaded successfully');
+    // Add console message to verify the script is loaded
+    console.log('Zonaprop Price per m² extension loaded successfully');
+}
 
 // Export functions for testing (only in Node.js environment)
 if (typeof module !== 'undefined') {
