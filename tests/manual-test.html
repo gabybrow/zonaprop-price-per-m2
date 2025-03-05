@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zonaprop Price per m² Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .property-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .postingCardLayout-module__posting-card-layout {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        [data-qa="price"] {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .postingFeatures-module__features {
+            display: flex;
+            gap: 10px;
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zonaprop Price per m² Test Page</h1>
+    <p>This page simulates Zonaprop property listings to test the extension functionality.</p>
+    
+    <div class="property-cards">
+        <!-- USD Property -->
+        <div class="postingCardLayout-module__posting-card-layout" data-id="test-property-1">
+            <h3>Apartment in Palermo</h3>
+            <div data-qa="price">USD 120.000</div>
+            <div class="postingFeatures-module__features">
+                <span data-qa="posting-card-feature-surface">45 m²</span>
+                <span>•</span>
+                <span>2 bedrooms</span>
+                <span>•</span>
+                <span>1 bathroom</span>
+            </div>
+        </div>
+        
+        <!-- ARS Property -->
+        <div class="postingCardLayout-module__posting-card-layout" data-id="test-property-2">
+            <h3>House in Belgrano</h3>
+            <div data-qa="price">ARS 25.000.000</div>
+            <div class="postingFeatures-module__features">
+                <span data-qa="posting-card-feature-surface">85 m²</span>
+                <span>•</span>
+                <span>3 bedrooms</span>
+                <span>•</span>
+                <span>2 bathrooms</span>
+            </div>
+        </div>
+        
+        <!-- Alternate Format Property -->
+        <div class="postingCardLayout-module__posting-card-layout" data-id="test-property-3">
+            <h3>Apartment in Recoleta</h3>
+            <div class="price">U$S 95.500</div>
+            <div class="features">
+                <div>60 m²</div>
+                <div>•</div>
+                <div>1 bedroom</div>
+                <div>•</div>
+                <div>1 bathroom</div>
+            </div>
+        </div>
+        
+        <!-- Decimal Format Property -->
+        <div class="postingCardLayout-module__posting-card-layout" data-id="test-property-4">
+            <h3>Loft in San Telmo</h3>
+            <div data-qa="price">USD 78.500</div>
+            <div class="postingFeatures-module__features">
+                <span data-qa="posting-card-feature-surface">32,5 m²</span>
+                <span>•</span>
+                <span>1 bedroom</span>
+                <span>•</span>
+                <span>1 bathroom</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../content.js"></script>cript>
+</body>
+</html>

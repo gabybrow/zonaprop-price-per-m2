@@ -42,7 +42,31 @@ This Chrome extension adds price per square meter calculations to Zonaprop prope
 - Clear, green-colored display of price per square meter
 - Works with both rental and sale listings
 
-## Development
+## Development and Testing
+
+### Automated Testing
+1. Install dependencies: `npm install`
+2. Run tests: `npm test`
+
+### Manual Testing
+1. Open `tests/manual-test.html` in your browser with the extension installed
+2. Check if price per square meter calculations appear correctly
+3. Inspect any console errors
+
+### Debugging Tips
+- Check browser console for errors
+- Verify the extension has permission to access the website
+- Make sure exchange rate API is accessible
+- Use the browser's developer tools to inspect element selectors
+
+## Troubleshooting
+
+If the extension isn't working:
+
+1. **Price not showing**: Check if property cards and price elements are found in console
+2. **Surface area not found**: Website DOM structure may have changed, update selectors
+3. **Exchange rate errors**: API might be down, check network requests
+4. **NaN values**: Check number parsing for different formatsnt
 
 ### Running Tests
 
