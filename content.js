@@ -40,86 +40,108 @@ function formatNumber(number) {
     });
 }
 
+// Function to extract surface area from property details
+function extractSurfaceArea(cardElement) {
+    const attempts = [
+        // Attempt 1: Direct surface feature with data-qa attribute
+        () => {
+            const surfaceFeature = cardElement.querySelector('[data-qa="posting-card-feature-surface"]');
+            if (surfaceFeature) {
+                console.log('Found surface via data-qa:', surfaceFeature.textContent);
+                return surfaceFeature.textContent;
+            }
+            return null;
+        },
+        // Attempt 2: Features container
+        () => {
+            const featuresContainer = cardElement.querySelector('.postingFeatures-module__features');
+            if (featuresContainer) {
+                console.log('Found features container:', featuresContainer.textContent);
+                return featuresContainer.textContent;
+            }
+            return null;
+        },
+        // Attempt 3: Individual feature spans
+        () => {
+            const features = Array.from(cardElement.querySelectorAll('[data-qa="posting-card-features-features"]'));
+            for (const feature of features) {
+                if (feature.textContent.includes('m²')) {
+                    console.log('Found surface in feature:', feature.textContent);
+                    return feature.textContent;
+                }
+            }
+            return null;
+        },
+        // Attempt 4: Search in all nested text for surface area
+        () => {
+            const allText = cardElement.textContent;
+            const surfaceMatch = allText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
+            if (surfaceMatch) {
+                console.log('Found surface in text content:', surfaceMatch[0]);
+                return surfaceMatch[0];
+            }
+            return null;
+        }
+    ];
+
+    for (const attempt of attempts) {
+        const result = attempt();
+        if (result) return result;
+    }
+
+    console.log('No surface area found in card:', cardElement.outerHTML);
+    return null;
+}
+
 // Main function to process property cards
 async function processPropertyCards() {
     console.log('Processing property cards...');
 
-    // Updated selector to match new property card layout
+    // Select property cards using the specific module class
     const propertyCards = document.querySelectorAll('.postingCardLayout-module__posting-card-layout');
     console.log(`Found ${propertyCards.length} property cards`);
 
     for (const card of propertyCards) {
         try {
-            // Price element selector
-            const priceElement = card.querySelector([
-                '[data-qa="price"]',
-                '[data-qa="POSTING_CARD_PRICE"]',
-                '.price'
-            ].join(','));
+            // Skip if already processed
+            if (card.querySelector('.price-per-meter')) continue;
 
+            // Price element selector
+            const priceElement = card.querySelector('[data-qa="price"]');
             if (!priceElement) {
-                console.log('Price element not found. Card HTML:', card.outerHTML.slice(0, 200));
+                console.log('Price element not found in card:', card.outerHTML);
                 continue;
             }
 
-            // Get all feature elements and combine their text
-            const featureElements = card.querySelectorAll([
-                'span[data-qa="posting-card-features-features"]',
-                'div[data-qa="posting-card-features"]',
-                'div.postingFeatures-module__features',
-                'div.features'
-            ].join(','));
+            // Get surface area
+            const surfaceText = extractSurfaceArea(card);
+            if (!surfaceText) continue;
 
-            let surfaceText = '';
-            featureElements.forEach(element => {
-                console.log('Feature element found:', element.textContent);
-                surfaceText += ' ' + element.textContent;
-            });
-
-            // Use fallback surface area selector if needed
-            if (!surfaceText) {
-                const surfaceElement = card.querySelector('[data-qa="posting-card-feature-surface"]');
-                if (surfaceElement) {
-                    console.log('Found direct surface element:', surfaceElement.textContent);
-                    surfaceText = surfaceElement.textContent;
-                } else {
-                    console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
-                    continue;
-                }
+            // Extract surface area value
+            const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²/);
+            if (!surfaceMatch) {
+                console.log('Could not parse surface area from:', surfaceText);
+                continue;
             }
 
-            // Skip if already processed
-            if (priceElement.querySelector('.price-per-meter')) continue;
-
-            console.log('Processing card with price:', priceElement.textContent, 'and features:', surfaceText);
-
-            // Extract and convert price if necessary
+            // Extract and convert price
             let price = extractNumber(priceElement.textContent);
             if (!isUSD(priceElement)) {
                 price = await arsToUSD(price);
             }
 
-            // Find the surface area within the features text
-            console.log('Analyzing surface text:', surfaceText);
-            const surfaceMatch = surfaceText.match(/(\d+(?:[.,]\d+)?)\s*m²|(\d+(?:[.,]\d+)?)\s*metros?\s*cuadrados?/i);
-
-            if (!surfaceMatch) {
-                console.log('Could not find surface area in features:', surfaceText);
-                continue;
-            }
-
-            // Extract and validate surface area
-            const surfaceStr = surfaceMatch[1] || surfaceMatch[2];
-            const surface = extractNumber(surfaceStr);
+            // Calculate surface area
+            const surface = extractNumber(surfaceMatch[1]);
             if (!surface) {
-                console.log('Invalid surface area:', surfaceStr);
+                console.log('Invalid surface area:', surfaceMatch[1]);
                 continue;
             }
 
-            // Calculate and display price per m²
+            // Calculate and format price per m²
             const pricePerMeter = price / surface;
-            console.log('Calculated price per meter:', pricePerMeter);
+            console.log(`Calculated ${formatNumber(pricePerMeter)} USD/m² for surface ${surface}m²`);
 
+            // Create and style price per meter element
             const pricePerMeterElement = document.createElement('span');
             pricePerMeterElement.textContent = `(USD ${formatNumber(pricePerMeter)}/m²)`;
             pricePerMeterElement.style.color = '#28a745';
@@ -132,7 +154,7 @@ async function processPropertyCards() {
 
         } catch (error) {
             console.error('Error processing property card:', error);
-            console.log('Problematic card HTML:', card.outerHTML.slice(0, 200));
+            console.log('Problematic card HTML:', card.outerHTML);
         }
     }
 }
@@ -143,12 +165,8 @@ if (typeof window !== 'undefined') {
     processPropertyCards();
 
     // Set up a MutationObserver to handle dynamically loaded content
-    const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            if (mutation.addedNodes.length) {
-                processPropertyCards();
-            }
-        }
+    const observer = new MutationObserver(() => {
+        processPropertyCards();
     });
 
     // Start observing the document body for changes
@@ -157,17 +175,17 @@ if (typeof window !== 'undefined') {
         subtree: true
     });
 
-    // Add console message to verify the script is loaded
     console.log('Zonaprop Price per m² extension loaded successfully');
 }
 
-// Export functions for testing (only in Node.js environment)
+// Export functions for testing
 if (typeof module !== 'undefined') {
     module.exports = {
         extractNumber,
         isUSD,
         formatNumber,
         getCurrentExchangeRate,
-        arsToUSD
+        arsToUSD,
+        extractSurfaceArea
     };
 }
