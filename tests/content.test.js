@@ -21,6 +21,7 @@ describe('Price calculation functions', () => {
     expect(extractNumber('ARS 1.500.000')).toBe(1500000);
     expect(extractNumber('150 m²')).toBe(150);
     expect(extractNumber('1.234,56')).toBe(1234.56);
+    expect(extractNumber('45,5 m²')).toBe(45.5);
   });
 
   // Test isUSD function with different currency formats
