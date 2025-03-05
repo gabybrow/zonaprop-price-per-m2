@@ -2,6 +2,12 @@
 
 This Chrome extension adds price per square meter calculations to Zonaprop property listings.
 
+## Screenshots
+
+![Price Calculation Example](screenshots/price-calculation.png)
+
+*Above: Example of price per square meter calculation displayed next to a property listing*
+
 ## Installation Instructions
 
 1. Download all files in this folder:
@@ -35,3 +41,36 @@ This Chrome extension adds price per square meter calculations to Zonaprop prope
 - Dynamic updates as you scroll through property listings
 - Clear, green-colored display of price per square meter
 - Works with both rental and sale listings
+
+## Development
+
+### Running Tests
+
+The project uses Jest for testing. To run the tests:
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Run tests:
+   ```bash
+   npm test
+   ```
+
+### Test Coverage
+
+The test suite covers:
+- Price extraction from strings
+- Currency detection (USD/ARS)
+- Number formatting
+- Exchange rate fetching
+- ARS to USD conversion
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request

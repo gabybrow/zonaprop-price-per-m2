@@ -134,3 +134,14 @@ observer.observe(document.body, {
 
 // Add console message to verify the script is loaded
 console.log('Zonaprop Price per m² extension loaded successfully');
+
+// Export functions for testing (only in Node.js environment)
+if (typeof module !== 'undefined') {
+    module.exports = {
+        extractNumber,
+        isUSD,
+        formatNumber,
+        getCurrentExchangeRate,
+        arsToUSD
+    };
+}
