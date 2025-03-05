@@ -65,19 +65,19 @@ async function processPropertyCards() {
                 continue;
             }
 
-            // Updated selectors for features/surface area with more specific targeting
+            // Get all feature elements and combine their text
             const featureElements = card.querySelectorAll([
-                '[data-qa="posting PROPERTY"] [data-qa="features"]',
-                '[data-qa="posting PROPERTY"] .features',
-                '.postingFeatures-module__features',
-                '.postingFeatures',
-                '.features'
+                'span[data-qa="posting-card-features-features"]',
+                'div[data-qa="posting-card-features"]',
+                'div.postingFeatures-module__features',
+                'div.features'
             ].join(','));
 
             let surfaceText = '';
-            for (const element of featureElements) {
+            featureElements.forEach(element => {
+                console.log('Feature element found:', element.textContent);
                 surfaceText += ' ' + element.textContent;
-            }
+            });
 
             if (!surfaceText) {
                 console.log('Surface elements not found. Card HTML:', card.outerHTML.slice(0, 200));
