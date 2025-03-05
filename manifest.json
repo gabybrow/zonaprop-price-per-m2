@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Zonaprop Price per m²",
+  "version": "1.0",
+  "description": "Displays price per square meter for Zonaprop properties",
+  "icons": {
+    "48": "icon.svg",
+    "128": "icon.svg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.zonaprop.com.ar/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "host_permissions": [
+    "*://*.zonaprop.com.ar/*",
+    "https://api.bluelytics.com.ar/*"
+  ]
+}
