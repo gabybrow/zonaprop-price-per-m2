@@ -42,47 +42,72 @@ function formatNumber(number) {
 
 // Function to extract surface area from property details
 function extractSurfaceArea(cardElement) {
+    console.log('Starting surface area detection for card:', cardElement.getAttribute('data-id'));
+
     const attempts = [
         // Attempt 1: Direct surface feature with data-qa attribute
         () => {
-            const surfaceFeature = cardElement.querySelector('[data-qa="posting-card-feature-surface"], [data-qa="surface"]');
-            if (surfaceFeature) {
-                console.log('Found surface via data-qa:', surfaceFeature.textContent);
-                return surfaceFeature.textContent;
+            console.log('Attempt 1: Checking direct surface feature...');
+            const selectors = ['[data-qa="posting-card-feature-surface"]', '[data-qa="surface"]'];
+            for (const selector of selectors) {
+                const surfaceFeature = cardElement.querySelector(selector);
+                if (surfaceFeature) {
+                    console.log(`Found surface via selector "${selector}":`, surfaceFeature.textContent);
+                    return surfaceFeature.textContent;
+                }
+                console.log(`No element found for selector: ${selector}`);
             }
             return null;
         },
         // Attempt 2: Features container
         () => {
-            const featuresContainer = cardElement.querySelector('.postingFeatures-module__features, .postingCard-features');
-            if (featuresContainer) {
-                const text = featuresContainer.textContent;
-                console.log('Found features container:', text);
-                if (text.includes('m²')) return text;
+            console.log('Attempt 2: Checking features container...');
+            const selectors = ['.postingFeatures-module__features', '.postingCard-features'];
+            for (const selector of selectors) {
+                const featuresContainer = cardElement.querySelector(selector);
+                if (featuresContainer) {
+                    const text = featuresContainer.textContent;
+                    console.log(`Found features container with selector "${selector}":`, text);
+                    if (text.includes('m²')) return text;
+                }
+                console.log(`No element found for selector: ${selector}`);
             }
             return null;
         },
-        // Attempt 3: Individual feature spans
+        // Attempt 3: Individual feature elements
         () => {
-            const features = Array.from(cardElement.querySelectorAll('[data-qa="posting-card-features-features"], [data-qa="features"]'));
-            for (const feature of features) {
-                const text = feature.textContent;
-                if (text.includes('m²')) {
-                    console.log('Found surface in feature:', text);
-                    return text;
+            console.log('Attempt 3: Checking individual features...');
+            const selectors = [
+                '[data-qa="posting-card-features-features"]',
+                '[data-qa="features"]',
+                '.postingCard-features-item'
+            ];
+            for (const selector of selectors) {
+                const features = Array.from(cardElement.querySelectorAll(selector));
+                console.log(`Found ${features.length} features with selector "${selector}"`);
+                for (const feature of features) {
+                    const text = feature.textContent;
+                    if (text.includes('m²')) {
+                        console.log('Found surface in feature:', text);
+                        return text;
+                    }
+                    console.log('Feature text (no m²):', text);
                 }
             }
             return null;
         },
         // Attempt 4: Search in specific feature divs
         () => {
+            console.log('Attempt 4: Checking generic feature divs...');
             const features = Array.from(cardElement.querySelectorAll('div[class*="feature"], div[class*="Feature"]'));
+            console.log(`Found ${features.length} potential feature divs`);
             for (const feature of features) {
                 const text = feature.textContent;
                 if (text.includes('m²')) {
                     console.log('Found surface in div:', text);
                     return text;
                 }
+                console.log('Feature div text (no m²):', text);
             }
             return null;
         }
@@ -90,11 +115,15 @@ function extractSurfaceArea(cardElement) {
 
     for (const attempt of attempts) {
         const result = attempt();
-        if (result) return result;
+        if (result) {
+            console.log('Successfully found surface area:', result);
+            return result;
+        }
     }
 
-    // Log the entire card's HTML structure for debugging
-    console.log('Surface area detection attempts failed. Card structure:', cardElement.outerHTML);
+    // Log failure with card details
+    console.log('Surface area detection failed. Card HTML structure:');
+    console.log(cardElement.outerHTML);
     return null;
 }
 
