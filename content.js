@@ -307,10 +307,19 @@ async function processPropertyCards() {
                 '.postingCard-price',
                 '.posting-price',
                 '.firstPrice',
-                '.value'
+                '.value',
+                '[class*="price"]',
+                '[class*="Price"]',
+                'span:contains("USD")',
+                'span:contains("U$S")',
+                'span:contains("ARS")',
+                'div:contains("USD")',
+                'div:contains("U$S")'
             ];
             
             let priceElement = null;
+            
+            // First attempt: Direct selectors
             for (const selector of priceSelectors) {
                 const element = card.querySelector(selector);
                 if (element && element.textContent.trim()) {
@@ -319,8 +328,21 @@ async function processPropertyCards() {
                 }
             }
             
+            // Second attempt: Find any element containing price information
             if (!priceElement) {
-                console.log('Price element not found in card');
+                const allElements = card.querySelectorAll('*');
+                for (const element of allElements) {
+                    const text = element.textContent.trim();
+                    if ((text.includes('USD') || text.includes('U$S') || text.includes('ARS')) && 
+                        /\d+/.test(text)) {
+                        priceElement = element;
+                        break;
+                    }
+                }
+            }
+            
+            if (!priceElement) {
+                console.log('Price element not found in card:', card.outerHTML.substring(0, 200));
                 continue;
             }
 

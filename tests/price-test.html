@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Price Element Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .property-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .price {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+        .features {
+            margin: 10px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Price Element Detection Test</h1>
+    <p>This page tests various price element formats to help debug the extension.</p>
+    
+    <div class="property-card postingCardLayout-module__posting-card-layout" data-id="test-1">
+        <h3>Standard Price Format</h3>
+        <div data-qa="price">USD 150.000</div>
+        <div class="features">
+            <span>80 m²</span> • <span>2 bedrooms</span> • <span>1 bathroom</span>
+        </div>
+    </div>
+    
+    <div class="property-card postingCardLayout-module__posting-card-layout" data-id="test-2">
+        <h3>Price with Different Class</h3>
+        <div class="price">U$S 125.500</div>
+        <div class="features">
+            <span>65 m²</span> • <span>2 bedrooms</span> • <span>1 bathroom</span>
+        </div>
+    </div>
+    
+    <div class="property-card postingCardLayout-module__posting-card-layout" data-id="test-3">
+        <h3>Price in Nested Element</h3>
+        <div class="postingCard-info">
+            <span class="postingCard-price">USD 180.000</span>
+        </div>
+        <div class="features">
+            <span>95 m²</span> • <span>3 bedrooms</span> • <span>2 bathrooms</span>
+        </div>
+    </div>
+    
+    <div class="property-card postingCardLayout-module__posting-card-layout" data-id="test-4">
+        <h3>Price in Text Node</h3>
+        <div class="listing-details">
+            Precio: USD 200.000
+        </div>
+        <div class="features">
+            <span>110 m²</span> • <span>3 bedrooms</span> • <span>2 bathrooms</span>
+        </div>
+    </div>
+    
+    <div class="property-card postingCardLayout-module__posting-card-layout" data-id="test-5">
+        <h3>ARS Price Format</h3>
+        <div class="value">ARS 35.000.000</div>
+        <div class="features">
+            <span>75 m²</span> • <span>2 bedrooms</span> • <span>1 bathroom</span>
+        </div>
+    </div>
+    
+    <script src="../content.js"></script>
+</body>
+</html>
