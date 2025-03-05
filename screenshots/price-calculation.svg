@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200" viewBox="0 0 800 200">
+    <rect width="800" height="200" fill="#f8f9fa"/>
+    <text x="20" y="50" font-family="Arial" font-size="16">Departamento en Venta en Palermo</text>
+    <text x="20" y="100" font-family="Arial" font-size="24" font-weight="bold">USD 250.000</text>
+    <text x="200" y="100" font-family="Arial" font-size="20" fill="#28a745" font-weight="bold">(USD 2.500,00/m²)</text>
+    <text x="20" y="150" font-family="Arial" font-size="16">100 m² totales</text>
+</svg>
